@@ -1,0 +1,79 @@
+Question 1 :
+Crée un Artist Maxime et vérifie sa présence
+CREATE (max:Artist {primaryName: 'Maxime Leboeuf', birthYear: 2003, idArtist: 'ml321654987'})
+
+MATCH (max:Artist {primaryName: 'Maxime Leboeuf', birthYear: 2003, idArtist: 'ml321654987'}) RETURN max;
+
+Question 2 :
+Crée un film avec le titre "L'histoire de mon 20 au cours Infrastructure de donnees"
+CREATE (n:Film {primaryTitle: "L'histoire de mon 20 au cours Infrastructure de donnees", startYear: 2025, idFilm: "inf321654987"})
+
+Question 3 : 
+Trouve les noeuds correspondant à l'artiste "Maxime Leboeuf" et au film "L'histoire de mon 20 au cours Infrastructure de donnees"
+et crée la relation "acted_in" entre ces derniers
+MATCH (max:Artist), (inf:Film)
+WHERE max.primaryName = 'Maxime Leboeuf' AND inf.primaryTitle = "L'histoire de mon 20 au cours Infrastructure de donnees"
+CREATE (max)-[r:acted_in]->(inf)
+RETURN type(r);
+
+Question 4 :
+Match le noeud précédemment créé, puis crée deux Artist et deux relations directed vers le film
+MATCH (inf:Film)
+WHERE inf.primaryTitle = "L'histoire de mon 20 au cours Infrastructure de donnees"
+CREATE (lau:Artist {birthYear: 1900, primaryName: "Laurent Cabaret", idArtist: "lau321654987"})-[r1:directed]->(inf)<-[r2:directed]-(ste:Artist {birthYear: 1900, primaryName: "Stéphane Vialle", idArtist: "ste321654987"})
+
+Question 5 : 
+Trouve le noeud correspondant à Nicole Kidman et l'affiche avec sa date de naissance
+MATCH (Nicole:Artist)
+WHERE Nicole.primaryName = 'Nicole Kidman'
+RETURN Nicole, Nicole.birthYear;
+
+Question 6 :
+Affiche tous les noeuds ayant le label Film
+MATCH (f:Film) RETURN f;
+
+Question 7 :
+Retourne le nom des artistes nés en 1963 ("Helen Hunt", "Mike Myers", ...)
+MATCH (a:Artist)
+WHERE a.birthYear = 1963
+RETURN a.primaryName;
+
+Affiche le nombre d'artistes nés en 1963
+MATCH (a:Artist)
+WHERE a.birthYear = 1963
+RETURN count(a);
+
+Question 8 : 
+Récupère tous les artistes ayant une relation acted_in et compte le nombre de films par acteur.
+Filtre ensuite l'aggrégation pour trouver les artistes ayant joué dans plus d'un film,
+et affiche le nom de ces artistes avec le nombre de films dans lequel ils ont joué.
+MATCH (a:Artist)-[r:acted_in]->(f:Film)
+WITH a, count(DISTINCT f.idFilm) AS nbFilms WHERE nbFilms > 1
+RETURN a.primaryName, nbFilms
+
+Question 9 :
+Récupère toutes les relations des artistes et compte les relations de type distincts.
+Affiche ensuite les artistes ayant eu plus d'une seule responsabilité dans leurs vies.
+MATCH (a:Artist)-[r]->()
+WITH a, count(DISTINCT type(r)) AS respos WHERE respos > 1
+RETURN a.primaryName, respos;
+
+Question 10 :
+Principe similaire à la précédente, avec l'ajout des films dans l'aggrégation, ce qui permet de compter les responsabilités
+film par film.
+Affiche ensuite le nom des artistes et le titre des films dans lesquels ils ont eu plusieurs responsabilités.
+MATCH (a:Artist)-[r]->(f:Film)
+WITH a, f, count(DISTINCT type(r)) AS respos WHERE respos > 1
+RETURN a.primaryName, f.primaryTitle, respos;
+
+Question 11 :
+Compte le nombre d'acteurs par film puis trouve le maximum de cette valeur.
+Filtre ensuite les films sur leur nombre d'acteurs pour trouver deux correspondant au maximum.
+Affiche le nom des films avec le nombre d'acteurs.
+MATCH (a:Artist)-[:acted_in]->(f:Film)
+WITH f, count(DISTINCT a) AS nbActor
+WITH max(nbActor) AS maxActors
+MATCH (a:Artist)-[:acted_in]->(f:Film)
+WITH f, count(DISTINCT a) AS nbActor, maxActors
+WHERE nbActor = maxActors
+RETURN f.primaryTitle, nbActor;

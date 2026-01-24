@@ -12,7 +12,7 @@ server = os.environ["TPBDD_SERVER"]
 database = os.environ["TPBDD_DB"]
 username = os.environ["TPBDD_USERNAME"]
 password = os.environ["TPBDD_PASSWORD"]
-driver = os.environ["ODBC_DRIVER"]
+driver= os.environ["ODBC_DRIVER"]
 
 neo4j_server = os.environ["TPBDD_NEO4J_SERVER"]
 neo4j_user = os.environ["TPBDD_NEO4J_USER"]
@@ -27,118 +27,85 @@ graph.run("MATCH ()-[r]->() DELETE r")
 graph.run("MATCH (n:Artist) DETACH DELETE n")
 graph.run("MATCH (n:Film) DETACH DELETE n")
 
-with pyodbc.connect(
-    "DRIVER=" + driver +
-    ";SERVER=tcp:" + server +
-    ";PORT=1433" +
-    ";DATABASE=" + database +
-    ";UID=" + username +
-    ";PWD=" + password
-) as conn:
-
+with pyodbc.connect('DRIVER='+driver+';SERVER=tcp:'+server+';PORT=1433;DATABASE='+database+';UID='+username+';PWD='+ password) as conn:
     cursor = conn.cursor()
 
     # Films
     exportedCount = 0
-    cursor.execute("SELECT COUNT(1) FROM tFilm")
+    cursor.execute("SELECT COUNT(1) FROM TFilm")
     totalCount = cursor.fetchval()
-    cursor.execute("SELECT idFilm, primaryTitle, startYear FROM tFilm")
-
+    cursor.execute("SELECT idFilm, primaryTitle, startYear FROM TFilm")
     while True:
         importData = []
         rows = cursor.fetchmany(BATCH_SIZE)
         if not rows:
             break
 
+        i = 0
         for row in rows:
-            n = Node(
-                "Film",
-                idFilm=row[0],
-                primaryTitle=row[1],
-                startYear=row[2]
-            )
+            # Créer un objet Node avec comme label Film et les propriétés adéquates
+            n = Node("Film", idFilm=row[0], primaryTitle=row[1], startYear=row[2])
             importData.append(n)
+            i += 1
 
         try:
             create_nodes(graph.auto(), importData, labels={"Film"})
             exportedCount += len(rows)
-            print(f"{exportedCount}/{totalCount} film records exported to Neo4j")
+            print(f"{exportedCount}/{totalCount} title records exported to Neo4j")
         except Exception as error:
             print(error)
 
-    # Artists
+    # Names
     exportedCount = 0
     cursor.execute("SELECT COUNT(1) FROM tArtist")
     totalCount = cursor.fetchval()
     cursor.execute("SELECT idArtist, primaryName, birthYear FROM tArtist")
-
     while True:
         importData = []
         rows = cursor.fetchmany(BATCH_SIZE)
         if not rows:
             break
 
+        i = 0
         for row in rows:
-            n = Node(
-                "Artist",
-                idArtist=row[0],
-                primaryName=row[1],
-                birthYear=row[2]
-            )
+            n = Node("Artist", idArtist=row[0], primaryName=row[1], birthYear=row[2])
             importData.append(n)
+            i += 1
 
         try:
             create_nodes(graph.auto(), importData, labels={"Artist"})
             exportedCount += len(rows)
-            print(f"{exportedCount}/{totalCount} artist records exported to Neo4j")
+            print(f"{exportedCount}/{totalCount} title records exported to Neo4j")
         except Exception as error:
             print(error)
 
-    # Indexes
     try:
         print("Indexing Film nodes...")
-        graph.run("CREATE INDEX ON :Film(idFilm)")
-        print("Indexing Artist nodes...")
-        graph.run("CREATE INDEX ON :Artist(idArtist)")
+        graph.run("CREATE INDEX FOR (f:Film) ON (f.idFilm)")
+        print("Indexing Name (Artist) nodes...")
+        graph.run("CREATE INDEX FOR (a:Artist) ON (a.idArtist)")
     except Exception as error:
         print(error)
+
 
     # Relationships
     exportedCount = 0
     cursor.execute("SELECT COUNT(1) FROM tJob")
     totalCount = cursor.fetchval()
-    cursor.execute("SELECT idArtist, category, idFilm FROM tJob")
-
+    cursor.execute(f"SELECT idArtist, category, idFilm FROM tJob")
     while True:
-        importData = {
-            "acted in": [],
-            "directed": [],
-            "produced": [],
-            "composed": []
-        }
-
+        importData = { "acted in": [], "directed": [], "produced": [], "composed": [] }
         rows = cursor.fetchmany(BATCH_SIZE)
         if not rows:
             break
 
         for row in rows:
-            relTuple = (row[0], {}, row[2])
-            if row[1] in importData:
-                importData[row[1]].append(relTuple)
+            relTuple=(row[0], {}, row[2])
+            importData[row[1]].append(relTuple)
 
         try:
             for cat in importData:
-                if not importData[cat]:
-                    continue
-
-                create_relationships(
-                    graph.auto(),
-                    importData[cat],
-                    cat.replace(" ", "_").upper(),
-                    start_node_key=("Artist", "idArtist"),
-                    end_node_key=("Film", "idFilm")
-                )
-
+                create_relationships(graph.auto(), importData[cat], cat.replace(" ", "_"), ("Artist", "idArtist"), ("Film", "idFilm"))
             exportedCount += len(rows)
             print(f"{exportedCount}/{totalCount} relationships exported to Neo4j")
         except Exception as error:

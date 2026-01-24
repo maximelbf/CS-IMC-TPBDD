@@ -1,0 +1,114 @@
+Exercice 1 :
+Ajoute un artiste "Maxime Leboeuf" avec ses propriétés
+g.addV('Artist')
+ .property('pk', 'ml321654987')
+ .property('id', 'ml321654987')
+ .property('primaryName', 'Maxime Leboeuf')
+ .property('birthYear', 2003)
+
+Cherche les artistes avec le label "Maxime Leboeuf"
+ g.V()
+ .hasLabel('Artist')
+ .has('primaryName', 'Maxime Leboeuf')
+
+ Exercice 2 :
+Ajoute le film "L'histoire de mon Infrastructure de donnees au cours 20" (nom changé car base partagée entre les élèves)
+ g.addV('Film')
+ .property('pk', 'ff321654987')
+ .property('id', 'ff321654987')
+ .property('primaryTitle', "L'histoire de mon Infrastructure de donnees au cours 20")
+ .property('birthYear', 2025)
+
+Exercice 3 :
+Récupère l'artiste précédemment créé et le film précédemment créé pour ajouter l'artiste aux acteurs de ce film.
+g.V()
+ .hasLabel('Artist')
+ .has('primaryName', 'Mathias Thirion')
+ .addE('acted in')
+ .to(g.V().hasLabel('Film').has('primaryTitle', "L'histoire de mon Infrastructure de donnees au cours 20"))
+
+Exercice 4 :
+Ajoute les deux artistes et crée les relations comme précédemment.
+g.addV('Artist')
+ .property('pk', 'lau321654987')
+ .property('id', 'lau321654987')
+ .property('primaryName', 'Laurent Cabaret')
+ .property('birthYear', 1900)
+
+ g.addV('Artist')
+ .property('pk', 'ste321654987')
+ .property('id', 'ste321654987')
+ .property('primaryName', 'Stéphane Vialle')
+ .property('birthYear', 1900)
+
+g.V()
+ .hasLabel('Artist')
+ .has('primaryName', 'Laurent Cabaret')
+ .addE('directed')
+ .to(g.V().hasLabel('Film').has('primaryTitle', "L'histoire de mon Infrastructure de donnees au cours 20"))
+
+ g.V()
+ .hasLabel('Artist')
+ .has('primaryName', 'Stéphane Vialle')
+ .addE('directed')
+ .to(g.V().hasLabel('Film').has('primaryTitle', "L'histoire de mon Infrastructure de donnees au cours 20"))
+
+Exercice 5 :
+Filtre les noeuds par le nom d'artiste pour trouver Nicole Kidman
+g.V()
+.hasLabel('Artist')
+.has('primaryName', 'Nicole Kidman')
+
+Pour afficher l'année de naissance, il faut ajouter une valueMap
+g.V()
+ .hasLabel('Artist')
+ .has('primaryName', 'Nicole Kidman')
+ .valueMap('primaryName','birthYear')
+
+Exercice 6 : 
+Affiche tous les noeufs avec le label Film
+g.V()
+ .hasLabel('Film')
+
+Exercice 7 :
+Filtre tous les artistes pour ne garder que ceux nés en 1963 et affiche leurs noms
+ g.V()
+ .hasLabel('Artist')
+ .has('birthYear', 1963)
+ .values('primaryName')
+
+En adaptant la même requête, on trouve le nombre d'artistes nés en 1963
+ g.V()
+ .hasLabel('Artist')
+ .has('birthYear', 1963)
+ .count()
+
+Exercice 8 :
+Trouve les relations sortantes de Artist vers Film et ne garde que ceux qui ont un nombre de relations supérieur à 1
+en supprimant les doublons.
+g.V()
+ .hasLabel('Artist')
+ .where(__.out('acted in').dedup().count().is(gt(1)))
+
+Exercice 9 :
+Récupère les labels de chaque relation, supprime les doublons puis enlève les artistes n'ayant qu'un seul type de relation
+ g.V()
+ .hasLabel('Artist')
+ .where(__.outE().label().dedup().count().is(gt(1)))
+
+Exercice 10 :
+Récupère les artistes et les films associés via une relation sortante, puis ne garede que les artistes ayant plus d'une relation vers
+le même film (plusieurs responsabilités).
+On affiche ensuite le nom des artistes et le titre des films associés.
+g.V()
+ .hasLabel('Artist')
+ .as('a')
+ .outE()
+ .as('e1')
+ .inV()
+ .as('f')
+ .select('a','f')
+ .where(__.select('a').outE().inV().where(__.is('f')).count().is(gt(1)))
+ .select('a','f')
+ .by('primaryName')
+ .by('primaryTitle')
